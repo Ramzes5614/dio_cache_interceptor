@@ -90,6 +90,8 @@ class DioCacheInterceptor extends Interceptor {
       );
     }
 
+    print('CacheInterceptor: ${response.data}');
+
     // Is status 304 being set as valid status?
     if (response.statusCode == 304) {
       // Update cache response with response header values
@@ -120,7 +122,7 @@ class DioCacheInterceptor extends Interceptor {
       return;
     }
 
-    if (_isCacheCheckAllowed(err.response, cacheOptions)) {
+    if (_isCacheCheckAllowed(err, cacheOptions)) {
       // Retrieve response from cache
       final cacheResponse = await _loadResponse(err.requestOptions);
 
@@ -188,8 +190,7 @@ class DioCacheInterceptor extends Interceptor {
     if (response != null) {
       // Purge entry if staled
       final maxStale = CacheOptions.fromExtra(request)?.maxStale;
-      if ((maxStale == null || maxStale == const Duration(microseconds: 0)) &&
-          response.isStaled()) {
+      if ((maxStale == null || maxStale == const Duration(microseconds: 0)) && response.isStaled()) {
         await cacheStore.delete(cacheKey);
         return null;
       }
@@ -228,25 +229,31 @@ class DioCacheInterceptor extends Interceptor {
 
       // Update extra fields with cache info
       response.extra[CacheResponse.cacheKey] = cacheResp.key;
-      response.extra[CacheResponse.fromNetwork] =
-          CacheStrategyFactory.allowedStatusCodes.contains(statusCode);
+      response.extra[CacheResponse.fromNetwork] = CacheStrategyFactory.allowedStatusCodes.contains(statusCode);
     }
   }
 
   /// Checks if we can try to resolve cached response
   /// against given [err] and [cacheOptions].
-  bool _isCacheCheckAllowed(Response? errResponse, CacheOptions cacheOptions) {
+  bool _isCacheCheckAllowed(DioException errResponse, CacheOptions cacheOptions) {
+    if (errResponse.type == DioExceptionType.unknown &&
+        (cacheOptions.policy == CachePolicy.forceCache || cacheOptions.policy == CachePolicy.request)) {
+      print('CacheInterceptor: Offline or any other connection error. Trying to resolve with cache.');
+      return true;
+    }
+
+    final response = errResponse.response;
     // Determine if we can return cached response
-    if (errResponse?.statusCode == 304) {
+    if (response?.statusCode == 304) {
       return true;
     } else {
       final hcoeExcept = cacheOptions.hitCacheOnErrorExcept;
       if (hcoeExcept == null) return false;
 
-      if (errResponse == null) {
+      if (response == null) {
         // Offline or any other connection error
         return true;
-      } else if (!hcoeExcept.contains(errResponse.statusCode)) {
+      } else if (!hcoeExcept.contains(response.statusCode)) {
         // Status code is allowed to try cache look up.
         return true;
       }
