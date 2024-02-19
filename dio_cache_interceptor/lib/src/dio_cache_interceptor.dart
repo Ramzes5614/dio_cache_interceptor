@@ -101,6 +101,11 @@ class DioCacheInterceptor extends Interceptor {
       }
     }
 
+    if (cacheOptions.validateStatus != null && !cacheOptions.validateStatus!(response)) {
+      handler.next(response);
+      return;
+    }
+
     await _saveResponse(
       response,
       cacheOptions,

@@ -77,6 +77,9 @@ class CacheOptions {
   /// allow POST method request to be cached.
   final bool allowPostMethod;
 
+  /// Позволяет решать какие запросы нам нужно кэшировать, а какие нет
+  final bool Function(Response response)? validateStatus;
+
   // Key to retrieve options from request
   static const _extraKey = '@cache_options@';
 
@@ -91,6 +94,7 @@ class CacheOptions {
     this.priority = CachePriority.normal,
     this.cipher,
     this.allowPostMethod = false,
+    this.validateStatus,
     required this.store,
   });
 
@@ -122,9 +126,7 @@ class CacheOptions {
   }) {
     return CacheOptions(
       policy: policy ?? this.policy,
-      hitCacheOnErrorExcept: hitCacheOnErrorExcept != null
-          ? hitCacheOnErrorExcept.value
-          : this.hitCacheOnErrorExcept,
+      hitCacheOnErrorExcept: hitCacheOnErrorExcept != null ? hitCacheOnErrorExcept.value : this.hitCacheOnErrorExcept,
       keyBuilder: keyBuilder ?? this.keyBuilder,
       maxStale: maxStale != null ? maxStale.value : this.maxStale,
       priority: priority ?? this.priority,
