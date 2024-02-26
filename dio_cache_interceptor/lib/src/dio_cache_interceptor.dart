@@ -241,8 +241,7 @@ class DioCacheInterceptor extends Interceptor {
   /// Checks if we can try to resolve cached response
   /// against given [err] and [cacheOptions].
   bool _isCacheCheckAllowed(DioException errResponse, CacheOptions cacheOptions) {
-    if (errResponse.type == DioExceptionType.unknown &&
-        (cacheOptions.policy == CachePolicy.forceCache || cacheOptions.policy == CachePolicy.request)) {
+    if (errResponse.type == DioExceptionType.unknown || errResponse.type == DioExceptionType.connectionError) {
       print('CacheInterceptor: Offline or any other connection error. Trying to resolve with cache.');
       return true;
     }
